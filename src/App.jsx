@@ -34,13 +34,12 @@ const PRIDE_STYLE = {
 };
 
 const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "hu", label: "Magyar" },
-  { code: "de", label: "Deutsch" },
-  { code: "fr", label: "Français" },
-  { code: "pl", label: "Polski" },
-  { code: "cs", label: "Čeština" },
-  { code: "sk", label: "Slovenčina" },
+  { code: "hu", label: "Hungarian" },
+  { code: "de", label: "German" },
+  { code: "fr", label: "French" },
+  { code: "pl", label: "Polish" },
+  { code: "cs", label: "Czech" },
+  { code: "sk", label: "Slovak" },
 ];
 
 function splitSentencesClientEstimate(text) {
