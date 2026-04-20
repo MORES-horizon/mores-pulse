@@ -180,7 +180,7 @@ export default function App() {
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-white md:text-5xl">
             MORES <span className="text-yellow-400">Pulse</span> AI
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400">
             The model behind it operates using a 6-label codebook, including the following labels:{" "}
             <span className="text-zinc-200">Anger</span>,{" "}
             <span className="text-zinc-200">Fear</span>,{" "}
@@ -206,7 +206,7 @@ export default function App() {
               codebook
             </a>.
           </p>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
             Pride identification is conducted with the{" "}
             <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions9-v2" target="_blank" rel="noopener noreferrer" className="font-medium text-fuchsia-400 underline decoration-fuchsia-400/30 hover:decoration-fuchsia-400">
               extended emotion model
