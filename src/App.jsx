@@ -34,6 +34,7 @@ const PRIDE_STYLE = {
 };
 
 const LANGUAGES = [
+  { code: "en", label: "English" },
   { code: "hu", label: "Hungarian" },
   { code: "de", label: "German" },
   { code: "fr", label: "French" },
