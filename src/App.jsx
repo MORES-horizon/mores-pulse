@@ -49,7 +49,7 @@ const THEMES = {
     text: "#e4e4e7", text2: "#a1a1aa", text3: "#71717a",
     border: "#3f3f46", grid: "#444", inputBg: "#282828",
     tooltipBg: "#303030", tooltipBorder: "#555",
-    heading: "#ffffff",
+    heading: "#ffffff", link: "#ffcc00",
   },
   light: {
     name: "light",
@@ -57,7 +57,7 @@ const THEMES = {
     text: "#27272a", text2: "#52525b", text3: "#71717a",
     border: "#d4d4d8", grid: "#e4e4e7", inputBg: "#ffffff",
     tooltipBg: "#ffffff", tooltipBorder: "#d4d4d8",
-    heading: "#18181b",
+    heading: "#18181b", link: "#2563eb",
   },
 };
 
@@ -74,6 +74,12 @@ function hexAlpha(hex, a) {
 
 function softStyle(hex) {
   return { background: hexAlpha(hex, 0.12), borderColor: hexAlpha(hex, 0.3), color: hex };
+}
+
+function isLightColor(hex) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150;
 }
 
 function splitSentencesEst(text) {
@@ -332,7 +338,7 @@ export default function App() {
             </h1>
 
             <p className="mt-4 text-sm leading-relaxed" style={{ color: theme.text2 }}>
-              Pulse reads any text for emotional content, sentence by sentence.
+              MORES Pulse reads any text for emotional content, sentence by sentence.
               It detects five emotions &mdash;{" "}
               <span style={{ color: theme.text }}>anger</span>,{" "}
               <span style={{ color: theme.text }}>fear</span>,{" "}
@@ -345,8 +351,8 @@ export default function App() {
             </p>
 
             <p className="mt-3 text-sm leading-relaxed" style={{ color: theme.text2 }}>
-              <span style={{ color: PRIDE_COLOR }} className="font-medium">Pride</span> is detected by an{" "}
-              <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions9-v2" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: PRIDE_COLOR }}>
+              <span className="font-medium" style={{ color: theme.text }}>Pride</span> is detected by an{" "}
+              <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions9-v2" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>
                 extended model
               </a>.
               {" "}It appears as its own result and does not change the main analysis.
@@ -354,9 +360,9 @@ export default function App() {
 
             <p className="mt-3 text-sm leading-relaxed" style={{ color: theme.text2 }}>
               Questions about how MORES Pulse works? Read the{" "}
-              <a href="#qa" className="font-medium underline" style={{ color: "#ffcc00" }}>Q&A</a>.
+              <a href="#qa" className="font-medium underline" style={{ color: theme.link }}>Q&A</a>.
               {" "}For the full technical specification, see the{" "}
-              <a href="#codebook" className="font-medium underline" style={{ color: "#ffcc00" }}>codebook</a>.
+              <a href="#codebook" className="font-medium underline" style={{ color: theme.link }}>codebook</a>.
             </p>
           </div>
 
@@ -434,7 +440,7 @@ export default function App() {
                   {loading ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
-                      <span className="max-w-[180px] truncate">{loadingMsg}&hellip;</span>
+                      Analysing&hellip;
                     </>
                   ) : (
                     "Analyse text →"
@@ -459,12 +465,6 @@ export default function App() {
                 {e.label}
               </Pill>
             ))}
-            {includePride && (
-              <Pill style={softStyle(PRIDE_COLOR)}>
-                <span className="h-2 w-2" style={{ background: PRIDE_COLOR }} />
-                Pride (extended)
-              </Pill>
-            )}
           </div>
 
           {/* Empty state */}
@@ -528,13 +528,15 @@ export default function App() {
                               const d = overview[index];
                               if (!d) return null;
                               const cx = x + width / 2;
+                              const inBarFill = isLightColor(d.color) ? "#333333" : "white";
+                              const inBarFill2 = isLightColor(d.color) ? "rgba(51,51,51,0.75)" : "rgba(255,255,255,0.85)";
                               if (height > 48) {
                                 return (
                                   <g>
-                                    <text x={cx} y={y + height / 2 - 8} fill="white" textAnchor="middle" fontSize={11} fontWeight={700} fontFamily="quasimoda,sans-serif">
+                                    <text x={cx} y={y + height / 2 - 8} fill={inBarFill} textAnchor="middle" fontSize={11} fontWeight={700} fontFamily="quasimoda,sans-serif">
                                       {d.emotion}
                                     </text>
-                                    <text x={cx} y={y + height / 2 + 10} fill="rgba(255,255,255,0.85)" textAnchor="middle" fontSize={10} fontFamily="quasimoda,sans-serif">
+                                    <text x={cx} y={y + height / 2 + 10} fill={inBarFill2} textAnchor="middle" fontSize={10} fontFamily="quasimoda,sans-serif">
                                       {value.toFixed(1)}
                                     </text>
                                   </g>
@@ -542,10 +544,10 @@ export default function App() {
                               }
                               return (
                                 <g>
-                                  <text x={cx} y={y - 14} fill={d.color} textAnchor="middle" fontSize={10} fontWeight={600} fontFamily="quasimoda,sans-serif">
+                                  <text x={cx} y={y - 14} fill={theme.text2} textAnchor="middle" fontSize={10} fontWeight={600} fontFamily="quasimoda,sans-serif">
                                     {d.emotion}
                                   </text>
-                                  <text x={cx} y={y - 3} fill={theme.text2} textAnchor="middle" fontSize={9} fontFamily="quasimoda,sans-serif">
+                                  <text x={cx} y={y - 3} fill={theme.text3} textAnchor="middle" fontSize={9} fontFamily="quasimoda,sans-serif">
                                     {value.toFixed(1)}
                                   </text>
                                 </g>
@@ -570,7 +572,7 @@ export default function App() {
                 <div className="p-4" ref={setChartRef("radar")}>
                   <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={overview} outerRadius="75%">
+                      <RadarChart data={overview} outerRadius="65%">
                         <PolarGrid stroke={theme.grid} />
                         <PolarAngleAxis
                           dataKey="emotion"
@@ -630,7 +632,7 @@ export default function App() {
                             return (
                               <text
                                 x={x} y={y}
-                                fill={theme.text2}
+                                fill={theme.text}
                                 textAnchor={x > pcx ? "start" : "end"}
                                 dominantBaseline="central"
                                 fontSize={10}
@@ -714,7 +716,7 @@ export default function App() {
                 <CardHeader
                   label="04"
                   title="The text, read emotionally"
-                  subtitle="Each sentence carries one dominant emotion. Model confidence transparently shown alongside (%)"
+                  subtitle="Each sentence carries one dominant emotion. Model confidence transparently shown alongside"
                 />
                 <div className="space-y-2 p-6">
                   {results.map((r, i) => {
@@ -848,7 +850,7 @@ export default function App() {
 
           {/* Footer */}
           <div className="mt-12 pt-6 text-center" style={{ borderTop: `1px solid ${theme.border}` }}>
-            <p className="text-[11px] font-light leading-relaxed" style={{ color: theme.text3 }}>
+            <p className="text-xs font-light leading-relaxed" style={{ color: theme.text2 }}>
               This research was funded by the European Union under grant agreement No. 101132601
               (MORES &ndash; Moral emotions in politics &ndash; how they unite, how they divide).
             </p>
@@ -999,13 +1001,13 @@ function PrideCard({ prideResults, prideStats }) {
       <div className="flex flex-col gap-3">
         <div className="p-4" style={{ border: `1px solid ${hexAlpha(PRIDE_COLOR, 0.4)}`, background: hexAlpha(PRIDE_COLOR, 0.1) }}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color: hexAlpha(PRIDE_COLOR, 0.8) }}>
-            Average pride probability
+            Pride intensity
           </p>
           <p className="mt-1 text-4xl font-bold" style={{ color: "#8866ff" }}>
             {(prideStats.avg * 100).toFixed(1)}%
           </p>
           <p className="mt-1 text-[11px] font-light" style={{ color: hexAlpha(PRIDE_COLOR, 0.6) }}>
-            mean intensity across {prideStats.n} sentence{prideStats.n !== 1 ? "s" : ""}
+            average pride signal across {prideStats.n} sentence{prideStats.n !== 1 ? "s" : ""}
           </p>
         </div>
 
@@ -1035,7 +1037,7 @@ function PrideCard({ prideResults, prideStats }) {
                 {(max.pride * 100).toFixed(1)}%
               </Pill>
               <span style={{ color: theme.text3 }}>
-                extended model top:{" "}
+                Extended model dominant:{" "}
                 <span className="font-medium" style={{ color: theme.text2 }}>{max.dominant}</span>
               </span>
             </div>
@@ -1064,7 +1066,7 @@ function PrideCard({ prideResults, prideStats }) {
                 <span className="w-6 shrink-0 text-right font-mono text-[10px]" style={{ color: theme.text3 }}>
                   #{i + 1}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[12px] font-light" style={{ color: theme.text2 }}>
+                <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: theme.text }}>
                   {r.sentence}
                 </span>
                 <div className="relative h-1.5 w-32 shrink-0 overflow-hidden" style={{ background: theme.border }}>
