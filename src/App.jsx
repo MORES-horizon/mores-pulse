@@ -10,6 +10,7 @@ import {
    CONFIG
    ================================================================ */
 const API_URL = import.meta.env.VITE_API_URL || "";
+const BASE_URL = import.meta.env.BASE_URL || "/mores-pulse/";
 
 const EMOTIONS = [
   { key: "Anger",   label: "Anger",   color: "#ff330d" },
@@ -360,9 +361,9 @@ export default function App() {
 
             <p className="mt-3 text-sm leading-relaxed" style={{ color: theme.text2 }}>
               Questions about how MORES Pulse works? Read the{" "}
-              <a href="#qa" className="font-medium underline" style={{ color: theme.link }}>Q&A</a>.
+              <a href={BASE_URL + "MORES_Pulse_Q_and_A.pdf"} target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>Q&A</a>.
               {" "}For the full technical specification, see the{" "}
-              <a href="#codebook" className="font-medium underline" style={{ color: theme.link }}>codebook</a>.
+              <a href={BASE_URL + "Emotion_codebook_6.pdf"} target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>codebook</a>.
             </p>
           </div>
 
