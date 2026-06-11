@@ -594,6 +594,8 @@ export default function App() {
                         <Tooltip
                           cursor={{ fill: hexAlpha("#ffcc00", 0.06) }}
                           contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
+                          itemStyle={{ color: theme.text }}
+                          labelStyle={{ color: theme.text2 }}
                           formatter={(v) => [`${v.toFixed(1)}%`, "Avg. probability"]}
                         />
                         <Bar dataKey="pct" radius={0}>
@@ -781,6 +783,8 @@ export default function App() {
                         </Pie>
                         <Tooltip
                           contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
+                          itemStyle={{ color: theme.text }}
+                          labelStyle={{ color: theme.text2 }}
                           formatter={(v, name) => [`${v} sentence${v !== 1 ? "s" : ""}`, name]}
                         />
                       </PieChart>
