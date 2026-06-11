@@ -118,6 +118,51 @@ function downloadSvg(container, filename) {
   URL.revokeObjectURL(url);
 }
 
+function downloadHeatmapSvg(results, emotions, isDark, filename) {
+  if (!results || !results.length) return;
+  const n = results.length;
+  const labelW = 90, cellH = 28, gap = 3, padX = 12, padY = 12;
+  const chartW = Math.max(400, n * 14);
+  const totalW = labelW + chartW + padX * 2;
+  const totalH = emotions.length * (cellH + gap) - gap + padY * 2 + 30;
+
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`;
+  svgContent += `<rect width="${totalW}" height="${totalH}" fill="${isDark ? "#282828" : "#f5f5f0"}"/>`;
+
+  emotions.forEach((e, row) => {
+    const y = padY + row * (cellH + gap);
+    // Label
+    svgContent += `<text x="${labelW - 4}" y="${y + cellH / 2 + 4}" text-anchor="end" font-size="11" font-family="quasimoda,sans-serif" fill="${isDark ? "#a1a1aa" : "#52525b"}">${e.label}</text>`;
+    // Cells
+    const cellW = chartW / n;
+    results.forEach((r, i) => {
+      const v = r.probs[e.key] || 0;
+      const h = e.color.replace("#", "");
+      const cr = parseInt(h.slice(0, 2), 16), cg = parseInt(h.slice(2, 4), 16), cb = parseInt(h.slice(4, 6), 16);
+      const a = 0.08 + v * 0.92;
+      svgContent += `<rect x="${labelW + padX + i * cellW}" y="${y}" width="${cellW + 0.5}" height="${cellH}" fill="rgba(${cr},${cg},${cb},${a})"/>`;
+    });
+  });
+
+  // Sentence numbers
+  const tickY = padY + emotions.length * (cellH + gap) + 12;
+  const tickCount = Math.min(6, n);
+  for (let ti = 0; ti < tickCount; ti++) {
+    const idx = Math.round((ti * (n - 1)) / Math.max(tickCount - 1, 1));
+    const x = labelW + padX + (idx / n) * chartW + (chartW / n) / 2;
+    svgContent += `<text x="${x}" y="${tickY}" text-anchor="middle" font-size="10" font-family="quasimoda,sans-serif" fill="${isDark ? "#71717a" : "#71717a"}">#${idx + 1}</text>`;
+  }
+
+  svgContent += `</svg>`;
+  const blob = new Blob([svgContent], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.download = filename + ".svg";
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /* ================================================================
    UI PRIMITIVES
    ================================================================ */
@@ -836,7 +881,7 @@ export default function App() {
                   label="07"
                   title="The emotional arc"
                   subtitle="Each column is one sentence, left to right. Colour depth shows emotional intensity. Hover for the exact figure (%)"
-                  onDownload={() => downloadSvg(chartRefs.current.heatmap, "emotional-arc")}
+                  onDownload={() => downloadHeatmapSvg(results, EMOTIONS, isDark, "emotional-arc")}
                 />
                 <div ref={setChartRef("heatmap")}>
                   <RibbonHeatmap results={results} emotions={EMOTIONS} />
