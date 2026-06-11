@@ -95,6 +95,20 @@ function downloadSvg(container, filename) {
   if (!svg) return;
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  // Ensure the exported SVG has explicit dimensions and a viewBox
+  const w = svg.getAttribute("width") || svg.getBoundingClientRect().width;
+  const h = svg.getAttribute("height") || svg.getBoundingClientRect().height;
+  clone.setAttribute("width", w);
+  clone.setAttribute("height", h);
+  if (!clone.getAttribute("viewBox")) {
+    clone.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  }
+  // Copy computed styles for text elements so fonts render in the exported file
+  clone.querySelectorAll("text").forEach((t) => {
+    if (!t.getAttribute("font-family")) {
+      t.setAttribute("font-family", "quasimoda,sans-serif");
+    }
+  });
   const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -227,7 +241,22 @@ export default function App() {
       });
       if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
       const data = await res.json();
-      setResults(data.sentences || []);
+      // Filter results to only the 6 base emotions
+      const VALID_KEYS = new Set(EMOTIONS.map((e) => e.key));
+      const filtered = (data.sentences || []).map((r) => {
+        const probs = {};
+        for (const [k, v] of Object.entries(r.probs)) {
+          if (VALID_KEYS.has(k)) probs[k] = v;
+        }
+        const ranked = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+        return {
+          ...r,
+          probs,
+          top1: ranked[0] ? { label: ranked[0][0], conf: ranked[0][1] } : r.top1,
+          top2: ranked[1] ? { label: ranked[1][0], conf: ranked[1][1] } : r.top2,
+        };
+      });
+      setResults(filtered);
       setPrideResults(data.pride || null);
       if (typeof window !== "undefined" && window.umami) {
         window.umami.track("analyze", { language, include_pride: includePride, sentences: data.sentences?.length || 0 });
@@ -303,9 +332,11 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={theme}>
+      {/* Global font override — ensures Quasimoda on every element */}
+      <style>{`*, *::before, *::after { font-family: quasimoda, sans-serif !important; }`}</style>
       <div
         className="min-h-screen px-6 py-10 antialiased"
-        style={{ background: theme.pageBg, color: theme.text, fontFamily: "quasimoda, sans-serif" }}
+        style={{ background: theme.pageBg, color: theme.text }}
       >
         <div className="mx-auto max-w-6xl">
 
@@ -514,10 +545,10 @@ export default function App() {
                       <BarChart data={overview} margin={{ top: 28, right: 8, left: -8, bottom: 4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
                         <XAxis dataKey="emotion" tick={false} axisLine={false} tickLine={false} height={5} />
-                        <YAxis tick={{ fontSize: 10, fill: theme.text3 }} axisLine={false} tickLine={false} domain={[0, "auto"]} />
+                        <YAxis tick={{ fontSize: 10, fill: theme.text3, fontFamily: "quasimoda,sans-serif" }} axisLine={false} tickLine={false} domain={[0, "auto"]} />
                         <Tooltip
                           cursor={{ fill: hexAlpha("#ffcc00", 0.06) }}
-                          contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text }}
+                          contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
                           formatter={(v) => [`${v.toFixed(1)}%`, "Avg. probability"]}
                         />
                         <Bar dataKey="pct" radius={0}>
@@ -562,108 +593,11 @@ export default function App() {
                 </div>
               </Card>
 
-              {/* CHART 02 — Radar: emotional signature */}
-              <Card>
-                <CardHeader
-                  label="02"
-                  title="Emotional signature"
-                  subtitle="The pattern formed by all six emotions together — each text produces a unique shape (%)"
-                  onDownload={() => downloadSvg(chartRefs.current.radar, "emotional-signature")}
-                />
-                <div className="p-4" ref={setChartRef("radar")}>
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={overview} outerRadius="65%">
-                        <PolarGrid stroke={theme.grid} />
-                        <PolarAngleAxis
-                          dataKey="emotion"
-                          tick={({ x, y, payload, index, textAnchor }) => {
-                            const d = overview[index];
-                            const maxVal = Math.max(...overview.map((o) => o.pct));
-                            const isBold = d && d.pct === maxVal && maxVal > 0;
-                            return (
-                              <text
-                                x={x} y={y}
-                                textAnchor={textAnchor}
-                                fontSize={isBold ? 11 : 10}
-                                fontWeight={isBold ? 700 : 400}
-                                fill={isBold ? d.color : theme.text2}
-                                fontFamily="quasimoda,sans-serif"
-                              >
-                                {payload.value}
-                              </text>
-                            );
-                          }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          tick={{ fontSize: 9, fill: theme.text3 }}
-                          axisLine={false}
-                        />
-                        <Radar dataKey="pct" stroke="#ffcc00" fill="#ffcc00" fillOpacity={0.18} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </Card>
-
-              {/* CHART 03 — Pie: emotional tone (dominant counts) */}
-              <Card>
-                <CardHeader
-                  label="03"
-                  title="Emotional tone"
-                  subtitle="How many sentences each emotion dominates — the overall tone of the text"
-                />
-                <div className="p-4">
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={dominantCounts}
-                          dataKey="count"
-                          nameKey="emotion"
-                          cx="50%" cy="50%"
-                          innerRadius={45}
-                          outerRadius={85}
-                          label={({ cx: pcx, cy: pcy, midAngle, outerRadius: or, emotion, pct }) => {
-                            const RADIAN = Math.PI / 180;
-                            const radius = or + 22;
-                            const x = pcx + radius * Math.cos(-midAngle * RADIAN);
-                            const y = pcy + radius * Math.sin(-midAngle * RADIAN);
-                            return (
-                              <text
-                                x={x} y={y}
-                                fill={theme.text}
-                                textAnchor={x > pcx ? "start" : "end"}
-                                dominantBaseline="central"
-                                fontSize={10}
-                                fontFamily="quasimoda,sans-serif"
-                              >
-                                {emotion} ({pct}%)
-                              </text>
-                            );
-                          }}
-                          labelLine={{ stroke: theme.text3 }}
-                        >
-                          {dominantCounts.map((d, i) => (
-                            <Cell key={i} fill={d.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text }}
-                          formatter={(v, name) => [`${v} sentence${v !== 1 ? "s" : ""}`, name]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Analysis confidence summary */}
+              {/* 02 — Analysis confidence summary */}
               {confStats && (
                 <Card>
                   <CardHeader
-                    label="—"
+                    label="02"
                     title="Analysis confidence"
                     subtitle="How certain the model is across the entire text"
                   />
@@ -712,10 +646,108 @@ export default function App() {
                 </Card>
               )}
 
-              {/* CHART 04 — Sentence view */}
-              <Card className="lg:col-span-2">
+              {/* CHART 03 — Radar: emotional signature */}
+              <Card>
+                <CardHeader
+                  label="03"
+                  title="Emotional signature"
+                  subtitle="The pattern formed by all six emotions together — each text produces a unique shape (%)"
+                  onDownload={() => downloadSvg(chartRefs.current.radar, "emotional-signature")}
+                />
+                <div className="p-4" ref={setChartRef("radar")}>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={overview} outerRadius="65%">
+                        <PolarGrid stroke={theme.grid} />
+                        <PolarAngleAxis
+                          dataKey="emotion"
+                          tick={({ x, y, payload, index, textAnchor }) => {
+                            const d = overview[index];
+                            const maxVal = Math.max(...overview.map((o) => o.pct));
+                            const isBold = d && d.pct === maxVal && maxVal > 0;
+                            return (
+                              <text
+                                x={x} y={y}
+                                textAnchor={textAnchor}
+                                fontSize={isBold ? 11 : 10}
+                                fontWeight={isBold ? 700 : 400}
+                                fill={isBold ? d.color : theme.text2}
+                                fontFamily="quasimoda,sans-serif"
+                              >
+                                {payload.value}
+                              </text>
+                            );
+                          }}
+                        />
+                        <PolarRadiusAxis
+                          angle={90}
+                          tick={{ fontSize: 9, fill: theme.text3, fontFamily: "quasimoda,sans-serif" }}
+                          axisLine={false}
+                        />
+                        <Radar dataKey="pct" stroke="#ffcc00" fill="#ffcc00" fillOpacity={0.18} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </Card>
+
+              {/* CHART 04 — Pie: emotional tone (dominant counts) */}
+              <Card>
                 <CardHeader
                   label="04"
+                  title="Emotional tone"
+                  subtitle="How many sentences each emotion dominates — the overall tone of the text"
+                  onDownload={() => downloadSvg(chartRefs.current.pie, "emotional-tone")}
+                />
+                <div className="p-4" ref={setChartRef("pie")}>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dominantCounts}
+                          dataKey="count"
+                          nameKey="emotion"
+                          cx="50%" cy="50%"
+                          innerRadius={45}
+                          outerRadius={85}
+                          label={({ cx: pcx, cy: pcy, midAngle, outerRadius: or, emotion, pct }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = or + 22;
+                            const x = pcx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = pcy + radius * Math.sin(-midAngle * RADIAN);
+                            return (
+                              <text
+                                x={x} y={y}
+                                fill={theme.text}
+                                textAnchor={x > pcx ? "start" : "end"}
+                                dominantBaseline="central"
+                                fontSize={10}
+                                fontFamily="quasimoda,sans-serif"
+                              >
+                                {emotion} ({pct}%)
+                              </text>
+                            );
+                          }}
+                          labelLine={{ stroke: theme.text3 }}
+                        >
+                          {dominantCounts.map((d, i) => (
+                            <Cell key={i} fill={d.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
+                          formatter={(v, name) => [`${v} sentence${v !== 1 ? "s" : ""}`, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </Card>
+
+              {/* CHART 05 — Sentence view */}
+              <Card className="lg:col-span-2">
+                <CardHeader
+                  label="05"
                   title="The text, read emotionally"
                   subtitle="Each sentence carries one dominant emotion. Model confidence transparently shown alongside"
                 />
@@ -735,7 +767,7 @@ export default function App() {
                           {em.label}
                         </span>
                         <p className="flex-1" style={{ color: theme.text }}>{r.sentence}</p>
-                        <span className="shrink-0 font-mono text-[11px]" style={{ color: theme.text2 }}>
+                        <span className="shrink-0 text-[11px] tabular-nums" style={{ color: theme.text2 }}>
                           {(r.top1.conf * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -744,10 +776,10 @@ export default function App() {
                 </div>
               </Card>
 
-              {/* CHART 05 — Table: the full breakdown */}
+              {/* CHART 06 — Table: the full breakdown */}
               <Card className="lg:col-span-2">
                 <CardHeader
-                  label="05"
+                  label="06"
                   title="The full breakdown"
                   subtitle="Two emotions per sentence, ranked by strength, with confidence scores (%)"
                 />
@@ -778,7 +810,7 @@ export default function App() {
                                 {r.top1.label}
                               </Pill>
                             </td>
-                            <td className="px-5 py-3 font-mono" style={{ color: theme.text3 }}>
+                            <td className="px-5 py-3 tabular-nums" style={{ color: theme.text3 }}>
                               {(r.top1.conf * 100).toFixed(1)}%
                             </td>
                             <td className="px-5 py-3">
@@ -787,7 +819,7 @@ export default function App() {
                                 {r.top2.label}
                               </Pill>
                             </td>
-                            <td className="px-5 py-3 font-mono" style={{ color: theme.text3 }}>
+                            <td className="px-5 py-3 tabular-nums" style={{ color: theme.text3 }}>
                               {(r.top2.conf * 100).toFixed(1)}%
                             </td>
                           </tr>
@@ -798,10 +830,10 @@ export default function App() {
                 </div>
               </Card>
 
-              {/* CHART 06 — Heatmap: the emotional arc */}
+              {/* CHART 07 — Heatmap: the emotional arc */}
               <Card className="lg:col-span-2">
                 <CardHeader
-                  label="06"
+                  label="07"
                   title="The emotional arc"
                   subtitle="Each column is one sentence, left to right. Colour depth shows emotional intensity. Hover for the exact figure (%)"
                   onDownload={() => downloadSvg(chartRefs.current.heatmap, "emotional-arc")}
@@ -811,7 +843,7 @@ export default function App() {
                 </div>
               </Card>
 
-              {/* CHART 07 — Pride: a separate layer */}
+              {/* CHART 08 — Pride: a separate layer */}
               {includePride && prideResults && prideResults.length > 0 && (
                 <Card
                   className="lg:col-span-2"
@@ -823,7 +855,7 @@ export default function App() {
                   }}
                 >
                   <CardHeader
-                    label={<span style={{ color: PRIDE_COLOR }}>07 &middot; Extended</span>}
+                    label={<span style={{ color: PRIDE_COLOR }}>08 &middot; Extended</span>}
                     title={
                       <span className="inline-flex items-center gap-2" style={{ color: theme.text }}>
                         <span
@@ -853,7 +885,7 @@ export default function App() {
           <div className="mt-12 pt-6 text-center" style={{ borderTop: `1px solid ${theme.border}` }}>
             <p className="text-xs font-light leading-relaxed" style={{ color: theme.text2 }}>
               This research was funded by the European Union under grant agreement No. 101132601
-              (MORES &ndash; Moral emotions in politics &ndash; how they unite, how they divide).
+              (<a href="https://mores-horizon.eu/" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>MORES</a> &ndash; Moral emotions in politics &ndash; How they unite, How they divide).
             </p>
           </div>
         </div>
@@ -923,7 +955,7 @@ function RibbonHeatmap({ results, emotions }) {
       </div>
 
       {/* Tick marks */}
-      <div className="relative mt-2 ml-[6.75rem] h-5 text-[10px] font-mono" style={{ color: theme.text3 }}>
+      <div className="relative mt-2 ml-[6.75rem] h-5 text-[10px] tabular-nums" style={{ color: theme.text3 }}>
         {ticks.map((t) => (
           <span
             key={t}
@@ -937,7 +969,7 @@ function RibbonHeatmap({ results, emotions }) {
 
       {/* Gradient legend */}
       <div className="mt-4 flex items-center gap-3 pl-[6.75rem]">
-        <span className="font-mono text-[10px]" style={{ color: theme.text3 }}>0%</span>
+        <span className="text-[10px] tabular-nums" style={{ color: theme.text3 }}>0%</span>
         <div
           className="h-2 flex-1"
           style={{
@@ -947,7 +979,7 @@ function RibbonHeatmap({ results, emotions }) {
             boxShadow: `inset 0 0 0 1px ${theme.border}`,
           }}
         />
-        <span className="font-mono text-[10px]" style={{ color: theme.text3 }}>100%</span>
+        <span className="text-[10px] tabular-nums" style={{ color: theme.text3 }}>100%</span>
       </div>
 
       {hover && (
@@ -978,7 +1010,7 @@ function FloatingTooltip({ result, emotionKey, emotions, x }) {
           <span className="h-2 w-2" style={{ background: em.color }} />
           <span className="font-semibold">{em.label}</span>
         </span>
-        <span className="font-mono text-[11px]" style={{ color: theme.text2 }}>
+        <span className="text-[11px] tabular-nums" style={{ color: theme.text2 }}>
           {(v * 100).toFixed(1)}%
         </span>
       </div>
@@ -1037,10 +1069,6 @@ function PrideCard({ prideResults, prideStats }) {
                 <span className="h-2 w-2" style={{ background: PRIDE_COLOR }} />
                 {(max.pride * 100).toFixed(1)}%
               </Pill>
-              <span style={{ color: theme.text3 }}>
-                Extended model dominant:{" "}
-                <span className="font-medium" style={{ color: theme.text2 }}>{max.dominant}</span>
-              </span>
             </div>
           </div>
         )}
@@ -1052,7 +1080,7 @@ function PrideCard({ prideResults, prideStats }) {
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color: theme.text3 }}>
             Per-sentence pride intensity
           </p>
-          <p className="font-mono text-[10px]" style={{ color: theme.text3 }}>0% &rarr; 100%</p>
+          <p className="text-[10px] tabular-nums" style={{ color: theme.text3 }}>0% &rarr; 100%</p>
         </div>
         <div className="space-y-1.5">
           {prideResults.map((r, i) => {
@@ -1064,7 +1092,7 @@ function PrideCard({ prideResults, prideStats }) {
                 style={{ border: `1px solid ${theme.border}`, background: theme.pageBg }}
                 title={r.sentence}
               >
-                <span className="w-6 shrink-0 text-right font-mono text-[10px]" style={{ color: theme.text3 }}>
+                <span className="w-6 shrink-0 text-right text-[10px] tabular-nums" style={{ color: theme.text3 }}>
                   #{i + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: theme.text }}>
@@ -1080,7 +1108,7 @@ function PrideCard({ prideResults, prideStats }) {
                     }}
                   />
                 </div>
-                <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums" style={{ color: theme.text3 }}>
+                <span className="w-10 shrink-0 text-right text-[11px] tabular-nums" style={{ color: theme.text3 }}>
                   {pct}%
                 </span>
               </div>
