@@ -95,7 +95,6 @@ function downloadSvg(container, filename) {
   if (!svg) return;
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  // Ensure the exported SVG has explicit dimensions and a viewBox
   const w = svg.getAttribute("width") || svg.getBoundingClientRect().width;
   const h = svg.getAttribute("height") || svg.getBoundingClientRect().height;
   clone.setAttribute("width", w);
@@ -103,16 +102,49 @@ function downloadSvg(container, filename) {
   if (!clone.getAttribute("viewBox")) {
     clone.setAttribute("viewBox", `0 0 ${w} ${h}`);
   }
-  // Copy computed styles for text elements so fonts render in the exported file
+  // Add white background for exported SVG
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("width", "100%");
+  bg.setAttribute("height", "100%");
+  bg.setAttribute("fill", "#ffffff");
+  clone.insertBefore(bg, clone.firstChild);
+  // Force dark text and line colors for white-background export
   clone.querySelectorAll("text").forEach((t) => {
     if (!t.getAttribute("font-family")) {
       t.setAttribute("font-family", "quasimoda,sans-serif");
     }
+    const fill = t.getAttribute("fill") || "";
+    // Convert light fills to dark for legibility on white background
+    if (fill.match(/^#[a-fA-F0-9]{6}$/)) {
+      const h = fill.replace("#", "");
+      const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+      const lum = (r * 299 + g * 587 + b * 114) / 1000;
+      if (lum > 160) t.setAttribute("fill", "#333333");
+    }
+    if (fill === "white" || fill === "#fff" || fill === "#ffffff") t.setAttribute("fill", "#333333");
+  });
+  // Fix grid/axis lines: make very dark lines slightly lighter, light lines darker
+  clone.querySelectorAll("line, path").forEach((el) => {
+    const stroke = el.getAttribute("stroke") || "";
+    if (stroke === "#444" || stroke === "#3f3f46") el.setAttribute("stroke", "#cccccc");
   });
   const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.download = filename + ".svg";
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadCsv(rows, filename) {
+  const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const header = Object.keys(rows[0]).map(escape).join(",");
+  const body = rows.map((r) => Object.values(r).map(escape).join(",")).join("\n");
+  const blob = new Blob([header + "\n" + body], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.download = filename + ".csv";
   a.href = url;
   a.click();
   URL.revokeObjectURL(url);
@@ -127,12 +159,12 @@ function downloadHeatmapSvg(results, emotions, isDark, filename) {
   const totalH = emotions.length * (cellH + gap) - gap + padY * 2 + 30;
 
   let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`;
-  svgContent += `<rect width="${totalW}" height="${totalH}" fill="${isDark ? "#282828" : "#f5f5f0"}"/>`;
+  svgContent += `<rect width="${totalW}" height="${totalH}" fill="#ffffff"/>`;
 
   emotions.forEach((e, row) => {
     const y = padY + row * (cellH + gap);
     // Label
-    svgContent += `<text x="${labelW - 4}" y="${y + cellH / 2 + 4}" text-anchor="end" font-size="11" font-family="quasimoda,sans-serif" fill="${isDark ? "#a1a1aa" : "#52525b"}">${e.label}</text>`;
+    svgContent += `<text x="${labelW - 4}" y="${y + cellH / 2 + 4}" text-anchor="end" font-size="11" font-family="quasimoda,sans-serif" fill="#333333">${e.label}</text>`;
     // Cells
     const cellW = chartW / n;
     results.forEach((r, i) => {
@@ -150,7 +182,7 @@ function downloadHeatmapSvg(results, emotions, isDark, filename) {
   for (let ti = 0; ti < tickCount; ti++) {
     const idx = Math.round((ti * (n - 1)) / Math.max(tickCount - 1, 1));
     const x = labelW + padX + (idx / n) * chartW + (chartW / n) / 2;
-    svgContent += `<text x="${x}" y="${tickY}" text-anchor="middle" font-size="10" font-family="quasimoda,sans-serif" fill="${isDark ? "#71717a" : "#71717a"}">#${idx + 1}</text>`;
+    svgContent += `<text x="${x}" y="${tickY}" text-anchor="middle" font-size="10" font-family="quasimoda,sans-serif" fill="#555555">#${idx + 1}</text>`;
   }
 
   svgContent += `</svg>`;
@@ -197,7 +229,7 @@ function CardHeader({ label, title, subtitle, right, onDownload }) {
       <div className="flex items-center gap-2 shrink-0">
         {right}
         {onDownload && (
-          <button onClick={onDownload} className="p-1.5 opacity-50 transition hover:opacity-100" style={{ color: t.text2 }} title="Download chart as SVG">
+          <button onClick={onDownload} className="p-1.5 opacity-50 transition hover:opacity-100" style={{ color: t.text2 }} title="Download">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
@@ -596,7 +628,17 @@ export default function App() {
                           contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
                           itemStyle={{ color: theme.text }}
                           labelStyle={{ color: theme.text2 }}
-                          formatter={(v) => [`${v.toFixed(1)}%`, "Avg. probability"]}
+                          content={({ active, payload }) => {
+                            if (!active || !payload || !payload[0]) return null;
+                            const d = payload[0].payload;
+                            const count = dominantCounts.find((dc) => dc.emotion === d.emotion)?.count || 0;
+                            return (
+                              <div style={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, padding: "8px 12px", fontFamily: "quasimoda,sans-serif" }}>
+                                <p style={{ color: theme.text, fontSize: 12, fontWeight: 600, margin: 0 }}>{d.emotion}:</p>
+                                <p style={{ color: theme.text2, fontSize: 12, margin: "2px 0 0" }}>{count} sentence{count !== 1 ? "s" : ""}</p>
+                              </div>
+                            );
+                          }}
                         />
                         <Bar dataKey="pct" radius={0}>
                           {overview.map((d, i) => (
@@ -698,11 +740,11 @@ export default function App() {
                 <CardHeader
                   label="03"
                   title="Emotional signature"
-                  subtitle="The pattern formed by all six emotions together — each text produces a unique shape (%)"
+                  subtitle="The pattern formed by all five emotions together — each text produces a unique shape (%)"
                   onDownload={() => downloadSvg(chartRefs.current.radar, "emotional-signature")}
                 />
-                <div className="p-4" ref={setChartRef("radar")}>
-                  <div className="h-72">
+                <div className="p-6" ref={setChartRef("radar")}>
+                  <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart data={overview} outerRadius="65%">
                         <PolarGrid stroke={theme.grid} />
@@ -799,6 +841,7 @@ export default function App() {
                   label="05"
                   title="The text, read emotionally"
                   subtitle="Each sentence carries one dominant emotion. Model confidence transparently shown alongside"
+                  onDownload={() => downloadCsv(results.map((r, i) => ({ "#": i + 1, Sentence: r.sentence, Emotion: r.top1.label, "Confidence (%)": (r.top1.conf * 100).toFixed(1), "2nd Emotion": r.top2.label, "2nd Conf (%)": (r.top2.conf * 100).toFixed(1) })), "sentences-emotional")}
                 />
                 <div className="space-y-2 p-6">
                   {results.map((r, i) => {
@@ -831,6 +874,7 @@ export default function App() {
                   label="06"
                   title="The full breakdown"
                   subtitle="Two emotions per sentence, ranked by strength, with confidence scores (%)"
+                  onDownload={() => downloadCsv(results.map((r, i) => ({ "#": i + 1, Sentence: r.sentence, "Prediction 1": r.top1.label, "Conf 1 (%)": (r.top1.conf * 100).toFixed(1), "Prediction 2": r.top2.label, "Conf 2 (%)": (r.top2.conf * 100).toFixed(1) })), "full-breakdown")}
                 />
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
@@ -915,6 +959,7 @@ export default function App() {
                       </span>
                     }
                     subtitle="Detected by our extended model, pride adds to the picture — it does not change the results above."
+                    onDownload={() => downloadCsv(prideResults.map((r, i) => ({ "#": i + 1, Sentence: r.sentence, "Pride (%)": (r.pride * 100).toFixed(1) })), "pride-analysis")}
                   />
                   <PrideCard prideResults={prideResults} prideStats={prideStats} />
                 </Card>
