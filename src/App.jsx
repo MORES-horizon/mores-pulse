@@ -153,12 +153,12 @@ function downloadCsv(rows, filename) {
 function downloadHeatmapSvg(results, emotions, isDark, filename) {
   if (!results || !results.length) return;
   const n = results.length;
-  const labelW = 90, cellH = 28, gap = 3, padX = 12, padY = 12;
-  const chartW = Math.max(400, n * 14);
+  const labelW = 100, cellH = 32, gap = 4, padX = 20, padY = 20;
+  const chartW = Math.max(600, n * 20);
   const totalW = labelW + chartW + padX * 2;
-  const totalH = emotions.length * (cellH + gap) - gap + padY * 2 + 30;
+  const totalH = emotions.length * (cellH + gap) - gap + padY * 2 + 40;
 
-  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}">`;
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${totalW} ${totalH}">`;
   svgContent += `<rect width="${totalW}" height="${totalH}" fill="#ffffff"/>`;
 
   emotions.forEach((e, row) => {
@@ -746,7 +746,7 @@ export default function App() {
                 <div className="p-6" ref={setChartRef("radar")}>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={overview} outerRadius="65%">
+                      <RadarChart data={overview} outerRadius="55%" margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                         <PolarGrid stroke={theme.grid} />
                         <PolarAngleAxis
                           dataKey="emotion"
@@ -958,7 +958,7 @@ export default function App() {
                         Pride: a separate layer
                       </span>
                     }
-                    subtitle="Detected by our extended model, pride adds to the picture — it does not change the results above."
+                    subtitle="Detected by our extended model, pride adds to the picture — it does not change the results above"
                     onDownload={() => downloadCsv(prideResults.map((r, i) => ({ "#": i + 1, Sentence: r.sentence, "Pride (%)": (r.pride * 100).toFixed(1) })), "pride-analysis")}
                   />
                   <PrideCard prideResults={prideResults} prideStats={prideStats} />
@@ -1127,13 +1127,13 @@ function PrideCard({ prideResults, prideStats }) {
       {/* Summary stats */}
       <div className="flex flex-col gap-3">
         <div className="p-4" style={{ border: `1px solid ${hexAlpha(PRIDE_COLOR, 0.4)}`, background: hexAlpha(PRIDE_COLOR, 0.1) }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color: hexAlpha(PRIDE_COLOR, 0.8) }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em]" style={{ color: "#b399ff" }}>
             Pride intensity
           </p>
-          <p className="mt-1 text-4xl font-bold" style={{ color: "#8866ff" }}>
+          <p className="mt-1 text-4xl font-bold" style={{ color: "#b399ff" }}>
             {(prideStats.avg * 100).toFixed(1)}%
           </p>
-          <p className="mt-1 text-[11px] font-light" style={{ color: hexAlpha(PRIDE_COLOR, 0.6) }}>
+          <p className="mt-1 text-[11px] font-light" style={{ color: "#9a7fdb" }}>
             average pride signal across {prideStats.n} sentence{prideStats.n !== 1 ? "s" : ""}
           </p>
         </div>
