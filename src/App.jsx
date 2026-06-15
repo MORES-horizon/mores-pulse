@@ -750,13 +750,16 @@ export default function App() {
                         <PolarGrid stroke={theme.grid} />
                         <PolarAngleAxis
                           dataKey="emotion"
-                          tick={({ x, y, payload, index, textAnchor }) => {
+                          tick={({ x, y, cx, cy, payload, index, textAnchor }) => {
                             const d = overview[index];
                             const maxVal = Math.max(...overview.map((o) => o.pct));
                             const isBold = d && d.pct === maxVal && maxVal > 0;
+                            // Push label further from center
+                            const dx = (x - cx) * 0.15;
+                            const dy = (y - cy) * 0.15;
                             return (
                               <text
-                                x={x} y={y}
+                                x={x + dx} y={y + dy}
                                 textAnchor={textAnchor}
                                 fontSize={isBold ? 11 : 10}
                                 fontWeight={isBold ? 700 : 400}
