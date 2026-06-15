@@ -746,7 +746,7 @@ export default function App() {
                 <div className="p-6" ref={setChartRef("radar")}>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={overview} outerRadius="55%" margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                      <RadarChart data={overview} outerRadius="70%" margin={{ top: 25, right: 40, bottom: 25, left: 40 }}>
                         <PolarGrid stroke={theme.grid} />
                         <PolarAngleAxis
                           dataKey="emotion"
@@ -769,8 +769,8 @@ export default function App() {
                           }}
                         />
                         <PolarRadiusAxis
-                          angle={90}
-                          tick={{ fontSize: 9, fill: theme.text3, fontFamily: "quasimoda,sans-serif" }}
+                          angle={30}
+                          tick={false}
                           axisLine={false}
                         />
                         <Radar dataKey="pct" stroke="#ffcc00" fill="#ffcc00" fillOpacity={0.18} />
