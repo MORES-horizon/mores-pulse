@@ -772,9 +772,23 @@ export default function App() {
                           }}
                         />
                         <PolarRadiusAxis
-                          angle={30}
-                          tick={{ fontSize: 9, fill: theme.text3, fontFamily: "quasimoda,sans-serif" }}
+                          angle={90}
                           axisLine={false}
+                          tick={({ x, y, payload }) => {
+                            if (payload.value === 0) return null;
+                            return (
+                              <text
+                                x={x + 12} y={y}
+                                fontSize={9}
+                                fill={theme.text3}
+                                fontFamily="quasimoda,sans-serif"
+                                textAnchor="start"
+                                dominantBaseline="middle"
+                              >
+                                {payload.value}
+                              </text>
+                            );
+                          }}
                         />
                         <Radar dataKey="pct" stroke="#ffcc00" fill="#ffcc00" fillOpacity={0.18} />
                       </RadarChart>
