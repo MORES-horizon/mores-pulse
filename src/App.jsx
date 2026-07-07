@@ -472,6 +472,8 @@ export default function App() {
               <a href={BASE_URL + "MORES_Pulse_Q_and_A.pdf"} target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>Q&A</a>.
               {" "}For the full technical specification, see the{" "}
               <a href={BASE_URL + "Emotion_codebook_6.pdf"} target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>codebook</a>.
+              {" "}Use the model{" "}
+              <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions6-v2" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>API</a>.
             </p>
           </div>
 
