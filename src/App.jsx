@@ -86,7 +86,7 @@ function isLightColor(hex) {
 function splitSentencesEst(text) {
   if (!text.trim()) return [];
   return text.replace(/\s+/g, " ")
-    .split(/(?<=[.!?…])\s+(?=[A-ZÁÉÍÓÖŐÚÜŰČĎĚŇŘŠŤŽŁŚŹŻÄÖÜ0-9])/u)
+    .split(/(?<=[.!?…])[""''»']?\s+(?=[""„''«']?[A-ZÁÉÍÓÖŐÚÜŰČĎĚŇŘŠŤŽŁŚŹŻÄÖÜ0-9])/u)
     .map((s) => s.trim()).filter(Boolean);
 }
 
@@ -461,7 +461,7 @@ export default function App() {
 
             <p className="mt-3 text-sm leading-relaxed" style={{ color: theme.text2 }}>
               <span className="font-medium" style={{ color: theme.text }}>Pride</span> is detected by an{" "}
-              <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions9-v2" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>
+              <a href="https://huggingface.co/MORES-horizon/MORES_emotions9" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>
                 extended model
               </a>.
               {" "}It appears as its own result and does not change the main analysis.
@@ -473,7 +473,7 @@ export default function App() {
               {" "}For the full technical specification, see the{" "}
               <a href={BASE_URL + "Emotion_codebook_6.pdf"} target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>codebook</a>.
               {" "}Use the model{" "}
-              <a href="https://huggingface.co/poltextlab/xlm-roberta-large-pooled-emotions6-v2" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>API</a>.
+              <a href="https://huggingface.co/MORES-horizon/MORESPulse" target="_blank" rel="noopener noreferrer" className="font-medium underline" style={{ color: theme.link }}>API</a>.
             </p>
           </div>
 
