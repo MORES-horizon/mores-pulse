@@ -819,7 +819,7 @@ export default function App() {
                           cx="50%" cy="50%"
                           innerRadius={45}
                           outerRadius={85}
-                          label={({ cx: pcx, cy: pcy, midAngle, outerRadius: or, emotion, pct }) => {
+                          label={({ cx: pcx, cy: pcy, midAngle, outerRadius: or, emotion, count }) => {
                             const RADIAN = Math.PI / 180;
                             const radius = or + 22;
                             const x = pcx + radius * Math.cos(-midAngle * RADIAN);
@@ -833,7 +833,7 @@ export default function App() {
                                 fontSize={10}
                                 fontFamily="quasimoda,sans-serif"
                               >
-                                {emotion} ({pct}%)
+                                {emotion} ({count})
                               </text>
                             );
                           }}
@@ -847,7 +847,10 @@ export default function App() {
                           contentStyle={{ border: `1px solid ${theme.tooltipBorder}`, background: theme.tooltipBg, fontSize: 12, color: theme.text, fontFamily: "quasimoda,sans-serif" }}
                           itemStyle={{ color: theme.text }}
                           labelStyle={{ color: theme.text2 }}
-                          formatter={(v, name) => [`${v} sentence${v !== 1 ? "s" : ""}`, name]}
+                          formatter={(v, name, _props, _idx, payload) => {
+                            const pct = payload && payload.pct ? payload.pct : ((v / results.length) * 100).toFixed(1);
+                            return [`${pct}% (${v} sentence${v !== 1 ? "s" : ""})`, name];
+                          }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
