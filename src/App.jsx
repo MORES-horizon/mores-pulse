@@ -272,10 +272,11 @@ export default function App() {
   const loadingRef = useRef(null);
   const chartRefs = useRef({});
 
-  // Sync body background with theme
+  // Sync body background and color-scheme with theme
   useEffect(() => {
     document.body.style.background = theme.pageBg;
-  }, [theme.pageBg]);
+    document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+  }, [theme.pageBg, isDark]);
 
   // Loading message rotation
   useEffect(() => {
